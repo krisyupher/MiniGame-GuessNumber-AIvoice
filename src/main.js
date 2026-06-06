@@ -1,0 +1,495 @@
+import { GameEngine } from './game.js';
+import { AIPersonality } from './ai.js';
+import { VoiceLayer } from './voice.js';
+import './style.css';
+
+// Instantiate core classes
+const game = new GameEngine();
+const ai = new AIPersonality();
+const voice = new VoiceLayer();
+
+// Local stats state (persisted in localStorage)
+let stats = {
+  wins: parseInt(localStorage.getItem('guess_num_stats_wins') || '0', 10),
+  best: localStorage.getItem('guess_num_stats_best') === null ? null : parseInt(localStorage.getItem('guess_num_stats_best'), 10)
+};
+
+// UI Elements cache
+const elWins = document.getElementById('stat-wins');
+const elBest = document.getElementById('stat-best');
+const elSecretCard = document.getElementById('secret-card');
+const elSecretNumberReveal = document.getElementById('secret-number-reveal');
+const elAttemptsBadge = document.getElementById('attempts-badge');
+const elAttemptsList = document.getElementById('attempts-list');
+const elChatFeed = document.getElementById('chat-feed');
+const elTranscript = document.getElementById('transcript-display');
+const elVisualizer = document.getElementById('visualizer');
+const elBtnMic = document.getElementById('btn-mic');
+const elBtnReset = document.getElementById('btn-reset');
+const elToggleManual = document.getElementById('toggle-manual-input');
+const elManualForm = document.getElementById('manual-input-form');
+const elGuessInput = document.getElementById('guess-input');
+
+// Settings Drawer Elements
+const elBtnSettings = document.getElementById('btn-settings');
+const elSettingsDrawer = document.getElementById('settings-drawer');
+const elBtnCloseSettings = document.getElementById('btn-close-settings');
+const elSettingsUseAI = document.getElementById('settings-use-ai');
+const elSettingsApiKey = document.getElementById('settings-api-key');
+const elBtnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
+const elSettingsVoice = document.getElementById('settings-voice');
+const elSettingsRate = document.getElementById('settings-rate');
+const elRateValue = document.getElementById('rate-value');
+const elSettingsPitch = document.getElementById('settings-pitch');
+const elPitchValue = document.getElementById('pitch-value');
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+  initStats();
+  initSettingsUI();
+  setupEventListeners();
+  startNewGameSession(true); // Start game with initial welcome greeting
+});
+
+/**
+ * Loads stats from localStorage and renders to UI
+ */
+function initStats() {
+  elWins.textContent = stats.wins;
+  elBest.textContent = stats.best === null ? '--' : stats.best;
+}
+
+/**
+ * Initializes settings inputs from AI and Voice Layer states
+ */
+function initSettingsUI() {
+  // Sync AI configs
+  elSettingsUseAI.checked = ai.useLiveAI;
+  elSettingsApiKey.value = ai.apiKey;
+  
+  if (!ai.useLiveAI) {
+    document.getElementById('api-key-container').classList.add('hidden');
+  }
+
+  // Sync voice settings
+  elSettingsRate.value = voice.rate;
+  elRateValue.textContent = voice.rate.toFixed(1);
+  elSettingsPitch.value = voice.pitch;
+  elPitchValue.textContent = voice.pitch.toFixed(1);
+
+  // Load voices list asynchronously
+  const populateVoices = () => {
+    const voices = voice.getVoices();
+    elSettingsVoice.innerHTML = '<option value="">Default Browser Voice</option>';
+    
+    voices.forEach(v => {
+      const option = document.createElement('option');
+      option.value = v.name;
+      option.textContent = `${v.name} (${v.lang})`;
+      if (v.name === voice.voiceName) {
+        option.selected = true;
+      }
+      elSettingsVoice.appendChild(option);
+    });
+  };
+
+  populateVoices();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = populateVoices;
+  }
+}
+
+/**
+ * Starts a fresh game, clears the board, and optionally greets the player
+ */
+function startNewGameSession(shouldGreet = false) {
+  game.startNewGame();
+  
+  // Clear attempts UI
+  elAttemptsBadge.textContent = '0 Attempts';
+  elAttemptsList.innerHTML = '<div class="no-attempts-placeholder">No guesses yet. Don\'t be shy!</div>';
+
+  // Reset Secret Card UI
+  elSecretCard.classList.remove('won');
+  elSecretNumberReveal.textContent = '--';
+  elTranscript.textContent = 'Click the microphone and say your guess!';
+  elTranscript.classList.remove('listening');
+  elVisualizer.classList.remove('active');
+  elBtnMic.classList.remove('listening');
+  
+  // Reset manual form input
+  elGuessInput.value = '';
+  elGuessInput.disabled = false;
+  elManualForm.querySelector('.submit-btn').disabled = false;
+
+  // Clear chat feed and issue welcome greeting
+  elChatFeed.innerHTML = '';
+  
+  if (shouldGreet) {
+    triggerAIChatResponse({
+      status: 'start',
+      attempts: [],
+      lastGuess: null,
+      ignoredHint: null,
+      attemptsCount: 0
+    });
+  }
+}
+
+/**
+ * Binds DOM event listeners
+ */
+function setupEventListeners() {
+  // Settings gear & drawer controls
+  elBtnSettings.addEventListener('click', () => {
+    elSettingsDrawer.classList.remove('hidden');
+  });
+
+  elBtnCloseSettings.addEventListener('click', () => {
+    elSettingsDrawer.classList.add('hidden');
+  });
+
+  elSettingsDrawer.addEventListener('click', (e) => {
+    if (e.target === elSettingsDrawer) {
+      elSettingsDrawer.classList.add('hidden');
+    }
+  });
+
+  // Settings modification events
+  elSettingsUseAI.addEventListener('change', (e) => {
+    const enabled = e.target.checked;
+    ai.setUseLiveAI(enabled);
+    const apiContainer = document.getElementById('api-key-container');
+    if (enabled) {
+      apiContainer.classList.remove('hidden');
+    } else {
+      apiContainer.classList.add('hidden');
+    }
+  });
+
+  elSettingsApiKey.addEventListener('input', (e) => {
+    ai.setApiKey(e.target.value);
+  });
+
+  elBtnToggleKeyVisibility.addEventListener('click', () => {
+    const icon = elBtnToggleKeyVisibility.querySelector('i');
+    if (elSettingsApiKey.type === 'password') {
+      elSettingsApiKey.type = 'text';
+      icon.className = 'fa-solid fa-eye-slash';
+    } else {
+      elSettingsApiKey.type = 'password';
+      icon.className = 'fa-solid fa-eye';
+    }
+  });
+
+  elSettingsVoice.addEventListener('change', (e) => {
+    voice.setVoice(e.target.value);
+  });
+
+  elSettingsRate.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    voice.setRate(val);
+    elRateValue.textContent = val.toFixed(1);
+  });
+
+  elSettingsPitch.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    voice.setPitch(val);
+    elPitchValue.textContent = val.toFixed(1);
+  });
+
+  // Reset Game
+  elBtnReset.addEventListener('click', () => {
+    voice.stopSpeaking();
+    voice.stopListening();
+    startNewGameSession(true);
+  });
+
+  // Toggle Manual text entry
+  elToggleManual.addEventListener('click', () => {
+    if (elManualForm.classList.contains('hidden')) {
+      elManualForm.classList.remove('hidden');
+      elToggleManual.innerHTML = '<i class="fa-solid fa-microphone-lines"></i> Switch to voice only';
+      elGuessInput.focus();
+    } else {
+      elManualForm.classList.add('hidden');
+      elToggleManual.innerHTML = '<i class="fa-solid fa-keyboard"></i> Can\'t use voice? Type your guess';
+    }
+  });
+
+  // Manual Form Submission
+  elManualForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const guess = elGuessInput.value.trim();
+    if (guess) {
+      processGuess(guess);
+      elGuessInput.value = '';
+    }
+  });
+
+  // Voice Microphone Control
+  elBtnMic.addEventListener('click', () => {
+    if (!voice.recognitionSupported) {
+      alert("Speech recognition is not supported in this browser. Please type your guess using the keyboard option.");
+      return;
+    }
+    
+    if (voice.isListening) {
+      voice.stopListening();
+    } else {
+      voice.startListening();
+    }
+  });
+
+  // Bind Voice Layer Events to STT
+  voice.onStartCallback = () => {
+    elBtnMic.classList.add('listening');
+    elTranscript.classList.add('listening');
+    elVisualizer.classList.add('active');
+    elTranscript.textContent = 'Listening for a number...';
+  };
+
+  voice.onEndCallback = () => {
+    elBtnMic.classList.remove('listening');
+    elTranscript.classList.remove('listening');
+    elVisualizer.classList.remove('active');
+    if (elTranscript.textContent === 'Listening for a number...') {
+      elTranscript.textContent = 'Click the microphone and say your guess!';
+    }
+  };
+
+  voice.onTranscriptCallback = (text) => {
+    elTranscript.textContent = `Hearing: "${text}"`;
+  };
+
+  voice.onResultCallback = (text, number) => {
+    if (number !== null) {
+      elTranscript.textContent = `I heard: ${number}`;
+      processGuess(number);
+    } else {
+      elTranscript.textContent = `Heard: "${text}" (Not a valid number 1-100)`;
+      handleInvalidVoiceInput(text);
+    }
+  };
+
+  voice.onErrorCallback = (event) => {
+    console.error('STT Error event:', event);
+    if (event.error === 'not-allowed') {
+      elTranscript.textContent = 'Microphone permission blocked. Please allow mic access in your browser settings.';
+    } else if (event.error === 'network') {
+      elTranscript.textContent = 'Voice recognition network error. Try Chrome/Edge, or use manual keyboard input.';
+    } else {
+      elTranscript.textContent = `Voice Error: ${event.error}. Try using manual keyboard input.`;
+    }
+  };
+}
+
+/**
+ * Handles processing guesses from either voice or text input
+ * @param {string|number} guessValue 
+ */
+function processGuess(guessValue) {
+  if (game.isGameOver) return;
+
+  const previousState = game.getState();
+  const state = game.makeGuess(guessValue);
+
+  // If input was totally invalid (non-number)
+  if (state.status === 'invalid') {
+    handleInvalidVoiceInput(guessValue);
+    return;
+  }
+
+  // Render attempts list
+  renderAttempts(state);
+
+  // Display user's dialogue bubble in chat feed
+  addChatBubble('Player', `I guess ${guessValue}`, false);
+
+  // Generate AI Response
+  triggerAIChatResponse(state);
+}
+
+/**
+ * Handle speech inputs that do not parse into numbers
+ * @param {string} text 
+ */
+function handleInvalidVoiceInput(text) {
+  triggerAIChatResponse({
+    status: 'invalid',
+    attempts: game.attempts,
+    lastGuess: text,
+    ignoredHint: null,
+    attemptsCount: game.attempts.length
+  });
+}
+
+/**
+ * Adds AI bubble to dialogue feed, executes text-to-speech
+ * @param {Object} state 
+ */
+async function triggerAIChatResponse(state) {
+  // Show typing bubble
+  addTypingIndicator();
+
+  // Get AI response text
+  const response = await ai.generateResponse(state);
+
+  // Remove typing bubble
+  removeTypingIndicator();
+
+  // Show dialogue text
+  addChatBubble('AI Opponent', response, true);
+
+  // Speak AI dialog
+  voice.speak(response);
+
+  // Handle Win events
+  if (state.status === 'correct') {
+    handleGameWin(state);
+  }
+}
+
+/**
+ * Executes victory routines
+ * @param {Object} state 
+ */
+function handleGameWin(state) {
+  // Lock guess forms
+  elGuessInput.disabled = true;
+  elManualForm.querySelector('.submit-btn').disabled = true;
+
+  // Spin and flip the secret number card
+  elSecretNumberReveal.textContent = state.secretNumber;
+  elSecretCard.classList.add('won');
+
+  // Stop listening
+  voice.stopListening();
+
+  // Update statistics
+  stats.wins += 1;
+  localStorage.setItem('guess_num_stats_wins', stats.wins.toString());
+
+  if (stats.best === null || state.attemptsCount < stats.best) {
+    stats.best = state.attemptsCount;
+    localStorage.setItem('guess_num_stats_best', stats.best.toString());
+  }
+
+  initStats();
+}
+
+/**
+ * Renders the attempts badges to grid container
+ * @param {Object} state 
+ */
+function renderAttempts(state) {
+  elAttemptsBadge.textContent = `${state.attemptsCount} Attempt${state.attemptsCount !== 1 ? 's' : ''}`;
+
+  if (state.attempts.length === 0) {
+    elAttemptsList.innerHTML = '<div class="no-attempts-placeholder">No guesses yet. Don\'t be shy!</div>';
+    return;
+  }
+
+  // Clear list
+  elAttemptsList.innerHTML = '';
+
+  // Render each attempt badge
+  state.attempts.forEach((guess) => {
+    const badge = document.createElement('div');
+    badge.className = 'attempt-badge';
+
+    const numSpan = document.createElement('span');
+    numSpan.textContent = guess;
+    badge.appendChild(numSpan);
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'badge-arrow';
+
+    // Styles & Arrows depending on relative position to secret number
+    if (guess === state.secretNumber) {
+      badge.classList.add('correct');
+      textSpan.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+    } else if (guess > state.secretNumber) {
+      badge.classList.add('too-high');
+      textSpan.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
+    } else {
+      badge.classList.add('too-low');
+      textSpan.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+    }
+
+    badge.appendChild(textSpan);
+    elAttemptsList.appendChild(badge);
+  });
+
+  // Auto-scroll attempts panel to bottom
+  elAttemptsList.scrollTop = elAttemptsList.scrollHeight;
+}
+
+/**
+ * UI Chat bubble helper
+ */
+function addChatBubble(sender, text, isAI) {
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${isAI ? 'ai' : 'player'}`;
+
+  const senderSpan = document.createElement('span');
+  senderSpan.className = 'bubble-sender';
+  senderSpan.textContent = sender;
+  bubble.appendChild(senderSpan);
+
+  const textNode = document.createElement('span');
+  textNode.className = 'bubble-text';
+  bubble.appendChild(textNode);
+
+  elChatFeed.appendChild(bubble);
+  elChatFeed.scrollTop = elChatFeed.scrollHeight;
+
+  if (isAI) {
+    // Elegant typewriter rendering
+    let i = 0;
+    textNode.textContent = '';
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        textNode.textContent += text.charAt(i);
+        i++;
+        elChatFeed.scrollTop = elChatFeed.scrollHeight;
+      } else {
+        clearInterval(interval);
+      }
+    }, 15);
+  } else {
+    textNode.textContent = text;
+  }
+}
+
+/**
+ * Renders loading indicators
+ */
+function addTypingIndicator() {
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble ai';
+  bubble.id = 'typing-indicator-bubble';
+
+  const senderSpan = document.createElement('span');
+  senderSpan.className = 'bubble-sender';
+  senderSpan.textContent = 'AI Opponent';
+  bubble.appendChild(senderSpan);
+
+  const indicator = document.createElement('div');
+  indicator.className = 'typing-indicator';
+  indicator.innerHTML = '<span></span><span></span><span></span>';
+  bubble.appendChild(indicator);
+
+  elChatFeed.appendChild(bubble);
+  elChatFeed.scrollTop = elChatFeed.scrollHeight;
+}
+
+/**
+ * Removes loading indicators
+ */
+function removeTypingIndicator() {
+  const indicator = document.getElementById('typing-indicator-bubble');
+  if (indicator) {
+    indicator.remove();
+  }
+}
