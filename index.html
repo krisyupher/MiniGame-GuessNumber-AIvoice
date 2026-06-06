@@ -3,35 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guess The Number AI - Voice-Enabled Gaming Opponent</title>
-  <!-- Google Fonts: Outfit for modern futuristic typography -->
+  <title>Guess the Number Voice - Friendly Voice Guessing Game</title>
+  <!-- Google Fonts: Outfit and Quicksand for a warm, friendly and modern look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- FontAwesome for gaming and control icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
   <div id="app">
-    <!-- Navbar / Stats Header -->
+    <!-- Navbar Header -->
     <header class="app-header">
       <div class="logo">
-        <i class="fa-solid fa-gamepad logo-icon"></i>
-        <h1>Guess The Number <span class="neon-text">AI</span></h1>
+        <i class="fa-solid fa-face-smile logo-icon"></i>
+        <h1>Guess the Number <span class="neon-text">Voice</span></h1>
       </div>
       
-      <div class="stats-container">
-        <div class="stat-box">
-          <span class="stat-label">WINS</span>
-          <span id="stat-wins" class="stat-value">0</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-label">BEST SCORE</span>
-          <span id="stat-best" class="stat-value">--</span>
-        </div>
-        <button id="btn-settings" class="icon-btn" title="Game Settings" aria-label="Settings">
-          <i class="fa-solid fa-gear"></i>
+      <div class="header-actions">
+        <button id="btn-reset" class="action-btn" title="Reset Game" aria-label="Reset Game">
+          <i class="fa-solid fa-arrow-rotate-right"></i> Reset Game
         </button>
       </div>
     </header>
@@ -68,14 +60,14 @@
         </div>
       </section>
 
-      <!-- Right Side: Speech visualizer and AI chat transcript -->
+      <!-- Right Side: Speech visualizer and Dialogue transcript -->
       <section class="chat-and-voice glass-panel">
         
         <!-- Live Chat Transcript -->
         <div class="chat-feed-container">
           <div class="section-title">
             <h3>Dialogue Feed</h3>
-            <span class="live-indicator"><span class="dot"></span> AI Opponent</span>
+            <span class="live-indicator"><span class="dot"></span> Voice Companion</span>
           </div>
           <div id="chat-feed" class="chat-feed">
             <!-- Chat logs will be populated programmatically -->
@@ -129,90 +121,11 @@
             >
             <button type="submit" class="submit-btn">Guess</button>
           </form>
-
-          <!-- New Game Action -->
-          <div class="game-actions">
-            <button id="btn-reset" class="action-btn">
-              <i class="fa-solid fa-arrow-rotate-right"></i> Reset Game
-            </button>
-          </div>
         </div>
 
       </section>
 
     </main>
-
-    <!-- Settings Drawer (Modal) -->
-    <div id="settings-drawer" class="drawer-overlay hidden">
-      <div class="drawer-content glass-panel">
-        <div class="drawer-header">
-          <h2><i class="fa-solid fa-sliders"></i> Game Settings</h2>
-          <button id="btn-close-settings" class="close-btn" aria-label="Close settings">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="drawer-body">
-          <!-- API Configuration -->
-          <fieldset class="settings-group">
-            <legend>Gemini AI Integration</legend>
-            
-            <div class="toggle-control">
-              <label for="settings-use-ai">Enable Dynamic Gemini AI</label>
-              <div class="switch">
-                <input type="checkbox" id="settings-use-ai">
-                <span class="slider round"></span>
-              </div>
-            </div>
-            <p class="setting-hint">Uses the real Gemini API for dynamic, contextual sarcasm. Off uses offline response templates.</p>
-
-            <div class="input-control" id="api-key-container">
-              <label for="settings-api-key">Gemini API Key</label>
-              <div class="password-wrapper">
-                <input type="password" id="settings-api-key" placeholder="AIzaSy...">
-                <button type="button" id="btn-toggle-key-visibility" class="view-btn">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
-              </div>
-              <p class="setting-hint">Stored strictly in local storage. Never leaves your browser.</p>
-            </div>
-          </fieldset>
-
-          <!-- Speech Synthesis Configuration -->
-          <fieldset class="settings-group">
-            <legend>Voice Settings</legend>
-            
-            <div class="select-control">
-              <label for="settings-voice">AI Text-to-Speech Voice</label>
-              <select id="settings-voice">
-                <option value="">Default Browser Voice</option>
-              </select>
-            </div>
-
-            <div class="range-control">
-              <div class="range-header">
-                <label for="settings-rate">Speech Speed (Rate)</label>
-                <span id="rate-value" class="range-val">1.0</span>
-              </div>
-              <input type="range" id="settings-rate" min="0.5" max="2.0" step="0.1" value="1.0">
-            </div>
-
-            <div class="range-control">
-              <div class="range-header">
-                <label for="settings-pitch">Voice Pitch</label>
-                <span id="pitch-value" class="range-val">1.0</span>
-              </div>
-              <input type="range" id="settings-pitch" min="0.5" max="2.0" step="0.1" value="1.0">
-            </div>
-          </fieldset>
-
-          <!-- Instructions/Info -->
-          <div class="settings-footer">
-            <p><i class="fa-solid fa-info-circle"></i> Voice recognition is optimized for Chrome, Edge, and Safari.</p>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Entry Script -->

@@ -8,15 +8,7 @@ const game = new GameEngine();
 const ai = new AIPersonality();
 const voice = new VoiceLayer();
 
-// Local stats state (persisted in localStorage)
-let stats = {
-  wins: parseInt(localStorage.getItem('guess_num_stats_wins') || '0', 10),
-  best: localStorage.getItem('guess_num_stats_best') === null ? null : parseInt(localStorage.getItem('guess_num_stats_best'), 10)
-};
-
 // UI Elements cache
-const elWins = document.getElementById('stat-wins');
-const elBest = document.getElementById('stat-best');
 const elSecretCard = document.getElementById('secret-card');
 const elSecretNumberReveal = document.getElementById('secret-number-reveal');
 const elAttemptsBadge = document.getElementById('attempts-badge');
@@ -30,74 +22,11 @@ const elToggleManual = document.getElementById('toggle-manual-input');
 const elManualForm = document.getElementById('manual-input-form');
 const elGuessInput = document.getElementById('guess-input');
 
-// Settings Drawer Elements
-const elBtnSettings = document.getElementById('btn-settings');
-const elSettingsDrawer = document.getElementById('settings-drawer');
-const elBtnCloseSettings = document.getElementById('btn-close-settings');
-const elSettingsUseAI = document.getElementById('settings-use-ai');
-const elSettingsApiKey = document.getElementById('settings-api-key');
-const elBtnToggleKeyVisibility = document.getElementById('btn-toggle-key-visibility');
-const elSettingsVoice = document.getElementById('settings-voice');
-const elSettingsRate = document.getElementById('settings-rate');
-const elRateValue = document.getElementById('rate-value');
-const elSettingsPitch = document.getElementById('settings-pitch');
-const elPitchValue = document.getElementById('pitch-value');
-
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
-  initStats();
-  initSettingsUI();
   setupEventListeners();
   startNewGameSession(true); // Start game with initial welcome greeting
 });
-
-/**
- * Loads stats from localStorage and renders to UI
- */
-function initStats() {
-  elWins.textContent = stats.wins;
-  elBest.textContent = stats.best === null ? '--' : stats.best;
-}
-
-/**
- * Initializes settings inputs from AI and Voice Layer states
- */
-function initSettingsUI() {
-  // Sync AI configs
-  elSettingsUseAI.checked = ai.useLiveAI;
-  elSettingsApiKey.value = ai.apiKey;
-  
-  if (!ai.useLiveAI) {
-    document.getElementById('api-key-container').classList.add('hidden');
-  }
-
-  // Sync voice settings
-  elSettingsRate.value = voice.rate;
-  elRateValue.textContent = voice.rate.toFixed(1);
-  elSettingsPitch.value = voice.pitch;
-  elPitchValue.textContent = voice.pitch.toFixed(1);
-
-  // Load voices list asynchronously
-  const populateVoices = () => {
-    const voices = voice.getVoices();
-    elSettingsVoice.innerHTML = '<option value="">Default Browser Voice</option>';
-    
-    voices.forEach(v => {
-      const option = document.createElement('option');
-      option.value = v.name;
-      option.textContent = `${v.name} (${v.lang})`;
-      if (v.name === voice.voiceName) {
-        option.selected = true;
-      }
-      elSettingsVoice.appendChild(option);
-    });
-  };
-
-  populateVoices();
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = populateVoices;
-  }
-}
 
 /**
  * Starts a fresh game, clears the board, and optionally greets the player
@@ -140,63 +69,6 @@ function startNewGameSession(shouldGreet = false) {
  * Binds DOM event listeners
  */
 function setupEventListeners() {
-  // Settings gear & drawer controls
-  elBtnSettings.addEventListener('click', () => {
-    elSettingsDrawer.classList.remove('hidden');
-  });
-
-  elBtnCloseSettings.addEventListener('click', () => {
-    elSettingsDrawer.classList.add('hidden');
-  });
-
-  elSettingsDrawer.addEventListener('click', (e) => {
-    if (e.target === elSettingsDrawer) {
-      elSettingsDrawer.classList.add('hidden');
-    }
-  });
-
-  // Settings modification events
-  elSettingsUseAI.addEventListener('change', (e) => {
-    const enabled = e.target.checked;
-    ai.setUseLiveAI(enabled);
-    const apiContainer = document.getElementById('api-key-container');
-    if (enabled) {
-      apiContainer.classList.remove('hidden');
-    } else {
-      apiContainer.classList.add('hidden');
-    }
-  });
-
-  elSettingsApiKey.addEventListener('input', (e) => {
-    ai.setApiKey(e.target.value);
-  });
-
-  elBtnToggleKeyVisibility.addEventListener('click', () => {
-    const icon = elBtnToggleKeyVisibility.querySelector('i');
-    if (elSettingsApiKey.type === 'password') {
-      elSettingsApiKey.type = 'text';
-      icon.className = 'fa-solid fa-eye-slash';
-    } else {
-      elSettingsApiKey.type = 'password';
-      icon.className = 'fa-solid fa-eye';
-    }
-  });
-
-  elSettingsVoice.addEventListener('change', (e) => {
-    voice.setVoice(e.target.value);
-  });
-
-  elSettingsRate.addEventListener('input', (e) => {
-    const val = parseFloat(e.target.value);
-    voice.setRate(val);
-    elRateValue.textContent = val.toFixed(1);
-  });
-
-  elSettingsPitch.addEventListener('input', (e) => {
-    const val = parseFloat(e.target.value);
-    voice.setPitch(val);
-    elPitchValue.textContent = val.toFixed(1);
-  });
 
   // Reset Game
   elBtnReset.addEventListener('click', () => {
@@ -339,7 +211,7 @@ async function triggerAIChatResponse(state) {
   removeTypingIndicator();
 
   // Show dialogue text
-  addChatBubble('AI Opponent', response, true);
+  addChatBubble('Voice Companion', response, true);
 
   // Speak AI dialog
   voice.speak(response);
@@ -365,17 +237,6 @@ function handleGameWin(state) {
 
   // Stop listening
   voice.stopListening();
-
-  // Update statistics
-  stats.wins += 1;
-  localStorage.setItem('guess_num_stats_wins', stats.wins.toString());
-
-  if (stats.best === null || state.attemptsCount < stats.best) {
-    stats.best = state.attemptsCount;
-    localStorage.setItem('guess_num_stats_best', stats.best.toString());
-  }
-
-  initStats();
 }
 
 /**
@@ -472,7 +333,7 @@ function addTypingIndicator() {
 
   const senderSpan = document.createElement('span');
   senderSpan.className = 'bubble-sender';
-  senderSpan.textContent = 'AI Opponent';
+  senderSpan.textContent = 'Voice Companion';
   bubble.appendChild(senderSpan);
 
   const indicator = document.createElement('div');

@@ -9,55 +9,49 @@ export class AIPersonality {
     // Local response templates for cost optimization and offline support
     this.templates = {
       start: [
-        "Welcome! I've chosen a secret number between 1 and 100. Speak your first guess, let's see what you've got!",
-        "Alright, let's play. A number between 1 and 100 is locked in. Give it your best shot, try not to embarrass yourself!",
-        "Secret number chosen! 1 to 100. Ready to lose? Go ahead and say your first guess."
+        "Welcome! I've chosen a secret number between 1 and 100. Tell me your first guess whenever you're ready! 🌟",
+        "Let's play a guessing game! I have a secret number from 1 to 100. What's your first guess? 😃",
+        "Hello! I'm thinking of a number between 1 and 100. Let's see if we can find it together. What's your guess?"
       ],
       too_low: [
-        "Too low! You need to climb higher than ${lastGuess}.",
-        "${lastGuess}? Not even close. Go higher!",
-        "Aim higher, friend! ${lastGuess} is way below.",
-        "Increase the altitude! ${lastGuess} is too small.",
-        "Scraping the bottom shelf there. Go higher than ${lastGuess}!"
+        "A bit too low! Try going higher than ${lastGuess}.",
+        "${lastGuess} is close, but the secret number is higher. Let's aim a bit higher! 🌟",
+        "Higher! Your guess of ${lastGuess} is below the secret number.",
+        "We're getting closer! Let's try something higher than ${lastGuess}."
       ],
       too_low_ignored_hint: [
-        "Wait, did you not hear me? I said it's higher than ${prevGuess}, and you guessed ${lastGuess}? Are you going backward?",
-        "You went even lower than ${prevGuess}? Fascinating strategy. Completely wrong, but fascinating.",
-        "Seriously? I told you to go higher, but you guessed ${lastGuess}. Is math not mathing today? 😂",
-        "Going down when I said go up. Bold choice! Let's see if it works... Spoiler: it didn't."
+        "Oh, remember, the secret number is higher than ${prevGuess}! Your guess of ${lastGuess} is actually lower, so let's aim up! 🌸",
+        "Oops! We want to go higher than ${prevGuess}, but ${lastGuess} is lower. Try picking a bigger number!",
+        "No worries! Just remember to guess a number higher than ${prevGuess}. You've got this! 💫"
       ],
       too_high: [
-        "Too high! Cool your engines.",
-        "${lastGuess}? Whoa, bring it way down!",
-        "Gravity, please! ${lastGuess} is way too high.",
-        "Lower! You are floating in outer space with that guess.",
-        "Nice try, but you're overshooting. Go lower than ${lastGuess}."
+        "A bit too high! Let's go lower than ${lastGuess}.",
+        "${lastGuess} is above the secret number. Let's aim a bit lower!",
+        "Lower! Try a number below ${lastGuess}.",
+        "Great try, but you're a bit over! Try something smaller than ${lastGuess}."
       ],
       too_high_ignored_hint: [
-        "Are we playing by the same rules? I said lower than ${prevGuess}, and you guessed ${lastGuess}?",
-        "You went even higher than ${prevGuess} to ${lastGuess}? I literally just said LOWER! 😂",
-        "Ignored the hint and went higher. Let me know when you want to start trying to win.",
-        "Wait, so if I say 'lower than ${prevGuess}', you hear 'go higher to ${lastGuess}'? Good to know!"
+        "Oops! We want to go lower than ${prevGuess}, but ${lastGuess} is higher. Let's try a smaller number! 🌸",
+        "Remember, the secret number is below ${prevGuess}! Your guess of ${lastGuess} went the other way. Let's go lower!",
+        "No worries at all! Just keep in mind that the number is lower than ${prevGuess}. Try again! ✨"
       ],
       repeated: [
-        "You already guessed ${lastGuess}! Memory of a goldfish, huh?",
-        "Double-dipping? You already tried ${lastGuess}. Try to keep track!",
-        "Again with ${lastGuess}? It wasn't correct the first time, and guess what? It still isn't!"
+        "Ah, you already guessed ${lastGuess}! Try another number, you're doing great! 🌟",
+        "We tried ${lastGuess} already. Let's pick a different one!",
+        "Double check! ${lastGuess} was already guessed. What other number should we try?"
       ],
       out_of_bounds: [
-        "${lastGuess}? The range is 1 to 100. Is counting that hard?",
-        "Whoa! ${lastGuess} is not between 1 and 100. Let's stick to the assignment.",
-        "Out of bounds! ${lastGuess} is outside the 1 to 100 range. Try again!"
+        "Oops! Let's stick to numbers between 1 and 100. Try another guess!",
+        "Remember, the secret number is between 1 and 100! Your guess of ${lastGuess} is outside that range."
       ],
       invalid: [
-        "I didn't quite catch a number there. Speak clearly or type it in!",
-        "Was that a number? My translator got confused. Try saying a number from 1 to 100.",
-        "Invalid guess. Speak a single number, please!"
+        "I didn't quite catch a number. Speak clearly or type it in! 🎤",
+        "Was that a number? I might have missed it. Try saying a number from 1 to 100! 😊"
       ],
       correct: [
-        "Finally! ${lastGuess} was the secret number. It took you ${attemptsCount} tries, but hey, you got there!",
-        "Boom! ${lastGuess} is correct. You actually won! I was starting to think I'd have to give you the answer.",
-        "Correct! You got it in ${attemptsCount} attempts. Don't let it go to your head, though. Try again?"
+        "Hooray! ${lastGuess} is the secret number! You found it in ${attemptsCount} attempts! Beautiful job! 🎉",
+        "Awesome! ${lastGuess} is correct! You guessed it in ${attemptsCount} tries. Let's play again! 🏆",
+        "You did it! ${lastGuess} is the secret number. It took you ${attemptsCount} attempts. Well played! 🌟"
       ]
     };
   }
@@ -142,15 +136,15 @@ export class AIPersonality {
     const model = 'gemini-2.5-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
 
-    const systemPrompt = `You are a sarcastic, slightly competitive, but friendly game opponent playing a "Guess The Number" game.
+    const systemPrompt = `You are a warm, encouraging, and friendly game companion playing a "Guess The Number" voice game.
 The player is trying to guess a secret number between 1 and 100.
-You must comment on their current guess and the game situation in a funny, conversational way.
+You must guide them and comment on their guess in a cheerful, positive, and conversational way.
 Keep your response short (1 or 2 sentences max, under 30 words) so it feels like natural, spoken dialogue.
-Be witty, friendly, and slightly sarcastic. Never be genuinely offensive.
-If they ignored a previous hint (e.g. guessed higher after being told to go lower, or vice-versa), mock them for ignoring instructions.
-If they guessed the same number again, tease them.
+Be supportive, enthusiastic, and helpful. Do not be sarcastic or mock the player.
+If they ignored a previous hint (e.g. guessed higher after being told to go lower, or vice-versa), gently remind them of the correct direction in a friendly way.
+If they guessed the same number again, kindly let them know they already tried that number.
 Do NOT give away the secret number unless their status is 'correct'.
-Avoid emojis in the spoken text if they would sound weird when read aloud, but light gaming emojis (like 😂, 😄) are fine.`;
+Use light, cheerful emojis (like 😃, 🌟, 🎉, 😊).`;
 
     const userPrompt = `Current Game State:
 - Secret Number: ${gameState.secretNumber} (Keep this secret unless status is 'correct')
